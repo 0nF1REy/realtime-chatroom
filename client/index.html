@@ -14,7 +14,50 @@
     <link rel="stylesheet" href="./styles/style.css" />
   </head>
   <body>
-    <div>Hello World!</div>
+    <div class="box">
+      <div class="main">
+        <!-- Caixa modal para nome de usuário -->
+        <div class="model-box">
+          <h1>Sala de Chat</h1>
+          <h2>Vamos conversar juntos</h2>
+          <div>
+            <h3>Digite seu nome</h3>
+            <input type="text" placeholder="Digite seu nome" maxlength="30" />
+            <button id="join">Entrar!</button>
+          </div>
+          <p class="error">Por favor, digite seu nome!</p>
+        </div>
+
+        <!-- Container de usuários online -->
+        <div class="online-user">
+          <div class="themes">
+            <div class="a1" onclick="changetheme(this)"></div>
+            <div class="a2" onclick="changetheme(this)"></div>
+            <div class="a3" onclick="changetheme(this)"></div>
+            <div class="a4" onclick="changetheme(this)"></div>
+          </div>
+          <h4>Usuários online!</h4>
+          <ul></ul>
+        </div>
+
+        <!-- Container principal do chat -->
+        <div class="chat-container">
+          <h1>Sala de Chat — Vamos conversar juntos</h1>
+          <div class="chat-area"></div>
+
+          <div id="typing-user"></div>
+          <div class="type-area">
+            <input
+              type="text"
+              id="msgtxt"
+              placeholder="Digite uma mensagem"
+              maxlength="500"
+            />
+            <button id="sendbtn">Enviar</button>
+          </div>
+        </div>
+      </div>
+    </div>
   </body>
   <script src="./scripts/script.js"></script>
 </html>
