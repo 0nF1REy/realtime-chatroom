@@ -1,0 +1,65 @@
+# ================================
+# Visual Studio Code
+# ================================
+.vscode/
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+.vscode/*.log
+
+# ================================
+# Visual Studio
+# ================================
+.vs/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+
+# ================================
+# JetBrains IDEs
+# ================================
+.idea/
+*.iml
+*.iws
+*.ipr
+out/
+
+# ================================
+# Eclipse / Theia
+# ================================
+.project
+.classpath
+.settings/
+
+# ================================
+# NetBeans
+# ================================
+nbproject/private/
+build/
+nbbuild/
+dist/
+nbdist/
+.nb-gradle/
+
+# ================================
+# macOS IDE artifacts
+# ================================
+.DS_Store
+*.swp
+*.swo
+
+# ================================
+# Linux IDE temp files
+# ================================
+*~
+.fuse_hidden*
+.directory
+
+# ================================
+# Windows IDE temp files
+# ================================
+Thumbs.db
+Desktop.ini
