@@ -33,7 +33,7 @@ pnpm-debug.log*
 **/*.swp/
 
 # Lock files
-**/packagXZe-lock.json
+**/package-lock.json
 **/yarn.lock
 **/pnpm-lock.yaml
 
