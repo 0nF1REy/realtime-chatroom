@@ -4,7 +4,7 @@ const express = require("express");
 const app = express();
 
 // Configurando os arquivos estáticos no servidor
-app.use("/", express.static(path.join(__dirname, "client")));
+app.use("/", express.static(path.join(__dirname, "../client")));
 
 const PORT = process.env.PORT || 5000;
 
