@@ -1,0 +1,41 @@
+# Dependencies
+**/node_modules/
+
+# Build outputs
+**/dist/
+**/build/
+**/coverage/
+
+# Environment variables and secrets
+**/.env
+**/.env.*
+!**/.env.example
+
+# Logs
+**/*.log
+npm-debug.log*
+yarn-debug.log*
+pnpm-debug.log*
+
+# Cache
+**/.cache/
+**/.turbo/
+
+# Editor and operating system files
+**/.DS_Store
+**/Thumbs.db
+**/.vscode/
+**/.idea/
+
+# Temporary files
+**/*.tmp
+**/*.bak
+**/*.swp/
+
+# Lock files
+**/packagXZe-lock.json
+**/yarn.lock
+**/pnpm-lock.yaml
+
+# Context
+context.txt

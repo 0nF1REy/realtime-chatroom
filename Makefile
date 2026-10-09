@@ -1,10 +1,10 @@
 .DEFAULT_GOAL := help
 
-.PHONY: help add status sync git-context
+.PHONY: help add status sync context send git-context
 
 help: ## Mostra os comandos disponíveis
 	@echo "Comandos disponíveis:"
-	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | \
+	@grep -E '^[a-zA-Z\_-]+:.*?## ' $(MAKEFILE_LIST) | \
 	awk 'BEGIN {FS = ":.*?## "}; {printf "  %-10s %s\n", $$1, $$2}'
 	@echo ""
 
@@ -25,6 +25,24 @@ sync: ## Sincroniza o repositório
 	@echo ""
 	@echo "▐▓▒░ Status atual do repositório:"
 	@git status
+
+context: ## Gera o arquivo context.txt com repomix
+	@echo "Limpando vestígios anteriores..."
+	@rm -f context.txt
+	@echo "Gerando novo contexto..."
+	@npx --yes repomix --output context.txt
+
+send: context ## Copia o contexto para o clipboard e apaga o arquivo
+	@echo "Copiando para o clipboard..."
+	@if command -v xclip > /dev/null; then \
+		cat context.txt | xclip -selection clipboard; \
+		echo "Copiado para o clipboard!"; \
+	else \
+		echo "Erro: xclip não encontrado."; \
+	fi
+	@echo "Limpando arquivo de contexto para manter o diretório limpo..."
+	@rm -f context.txt
+	@echo "Pronto! O arquivo context.txt foi removido."
 
 git-context: ## Gera contexto Git + Prompt AI para o clipboard
 	@echo "### AI INSTRUCTIONS ###" > context.tmp
