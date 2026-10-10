@@ -6,7 +6,7 @@ const joinbtn = document.querySelector("#join");
 const error = document.querySelector(".error");
 
 joinbtn.onclick = () => {
-  const username = mbinput.value.replace(/(<([^>]+)>)/gi, "");
+  const username = mbinput.value.replace(/(<([^>]+)>)/gi, "").trim();
 
   if (username === "") {
     error.style.opacity = "100";
@@ -49,6 +49,11 @@ function getData(username) {
     "tomato",
   ];
 
+  const TYPING_TIMEOUT = 5000;
+
+  let typingTimeout;
+  let isTyping = false;
+
   const ws = new WebSocket("ws://localhost:5000");
 
   WebSocket.prototype.emit = function (event, data) {
@@ -60,12 +65,24 @@ function getData(username) {
     this._SocketListener[event] = callback;
   };
 
+  // Remove o usuário do estado de digitação.
+  function stopTyping() {
+    clearTimeout(typingTimeout);
+    typingTimeout = null;
+
+    if (isTyping && ws.readyState === WebSocket.OPEN) {
+      ws.emit("RemoveUserTyping", null);
+    }
+
+    isTyping = false;
+  }
+
   sndbtn.disabled = true;
 
   ws.onopen = () => {
     sndbtn.disabled = false;
 
-    const useColor = color[Math.floor(Math.random() * 12)];
+    const useColor = color[Math.floor(Math.random() * color.length)];
 
     ws.emit("UserInfo", {
       user: username,
@@ -82,36 +99,58 @@ function getData(username) {
     };
 
     window.onbeforeunload = () => {
-      ws.emit("userleft", null);
+      if (ws.readyState === WebSocket.OPEN) {
+        ws.emit("userleft", null);
+      }
     };
   };
 
-  sndbtn.onclick = (e) => {
-    let msg = iptxt.value.replace(/(<([^>]+)>)/gi, "");
+  // Envio de mensagens
+  sndbtn.onclick = () => {
+    const msg = iptxt.value.replace(/(<([^>]+)>)/gi, "");
 
-    if (msg !== "") {
+    if (msg.trim() !== "" && ws.readyState === WebSocket.OPEN) {
       ws.emit("Message", { msg });
     }
 
     iptxt.value = "";
-    ws.emit("RemoveUserTyping", null);
+    stopTyping();
   };
 
-  iptxt.onkeyup = () => {
-    if (iptxt.value !== "") {
-      ws.emit("AddUserTyping", null);
-    } else {
-      ws.emit("RemoveUserTyping", null);
+  // Detecta a digitação e encerra o estado após um período de inatividade.
+  iptxt.addEventListener("input", () => {
+    if (iptxt.value.trim() === "") {
+      stopTyping();
+      return;
     }
+
+    if (!isTyping && ws.readyState === WebSocket.OPEN) {
+      ws.emit("AddUserTyping", null);
+      isTyping = true;
+    }
+
+    clearTimeout(typingTimeout);
+
+    typingTimeout = setTimeout(() => {
+      stopTyping();
+    }, TYPING_TIMEOUT);
+  });
+
+  ws.onclose = () => {
+    sndbtn.disabled = true;
+    stopTyping();
   };
 
   ws.onmessage = (message) => {
     const { event, data } = JSON.parse(message.data);
 
-    ws._SocketListener[event](data);
+    if (ws._SocketListener?.[event]) {
+      ws._SocketListener[event](data);
+    }
   };
 
-  ws.listen("UserInfo", function (data) {
+  // Lista de usuários online
+  ws.listen("UserInfo", (data) => {
     onlineUserH4.innerText = "Usuários online: " + data.length;
     onlineUsers.innerHTML = "";
 
@@ -124,44 +163,54 @@ function getData(username) {
     });
   });
 
-  ws.listen("Message", function (data) {
-    console.log(data);
+  // Exibe mensagens recebidas e o histórico
+  ws.listen("Message", (data) => {
+    const messages = Array.isArray(data) ? data : [data];
 
-    if (data.length > 0) {
-      for (let i = 0; i < data.length; i++) {
-        chtarea.innerHTML += `
-          <div class="msg-box">
-            <span>
-              <span id="username" style="color:${data[i].color}">${data[i].user}</span>
-              ${data[i].msg}
-            </span>
-            <span id="time">${getMsgTime(data[i].time)}</span>
-          </div>`;
-
-        chtarea.scrollTop = chtarea.scrollHeight;
-      }
-    } else {
+    messages.forEach((message) => {
       chtarea.innerHTML += `
         <div class="msg-box">
           <span>
-            <span id="username" style="color:${data.color}">${data.user}</span>
-            ${data.msg}
+            <span id="username" style="color:${message.color}">${message.user}</span>
+            ${message.msg}
           </span>
-          <span id="time">${getMsgTime(data.time)}</span>
+          <span id="time">${getMsgTime(message.time)}</span>
         </div>`;
 
       chtarea.scrollTop = chtarea.scrollHeight;
-    }
+    });
   });
 
-  ws.listen("Typinguser", function (data) {
-    if (data.length > 0 && data[data.length - 1].user !== username) {
-      typinguser.innerHTML = data[data.length - 1].user + " está digitando...";
-    } else if (data.length > 1 && data[data.length - 1].user === username) {
-      typinguser.innerHTML = data[data.length - 2].user + " está digitando...";
-    } else {
-      typinguser.innerHTML = "";
+  // Exibe um indicador compacto para as outras pessoas que estão digitando.
+  ws.listen("Typinguser", (data) => {
+    const otherUsers = data
+      .map((user) => user.user)
+      .filter((user) => user !== username);
+
+    if (otherUsers.length === 0) {
+      typinguser.textContent = "";
+      return;
     }
+
+    const firstUser = otherUsers[0];
+
+    if (otherUsers.length === 1) {
+      typinguser.textContent = `${firstUser} está digitando...`;
+      return;
+    }
+
+    if (otherUsers.length === 2) {
+      typinguser.textContent = `${firstUser} e ${otherUsers[1]} estão digitando...`;
+      return;
+    }
+
+    const additionalUsers = new Intl.NumberFormat("pt-BR").format(
+      otherUsers.length - 1,
+    );
+
+    typinguser.textContent = `${firstUser} e mais ${additionalUsers} ${
+      otherUsers.length - 1 === 1 ? "pessoa" : "pessoas"
+    } estão digitando...`;
   });
 }
 

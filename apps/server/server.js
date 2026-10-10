@@ -22,13 +22,11 @@ const messages = [];
 const typingusers = [];
 
 function getTime() {
-  const time = Date.now();
-  return time;
+  return Date.now();
 }
 
 function AddMessage(msg, userName, userTime, userColor) {
-  // Se o número de mensagens for maior que 20, remove uma do início
-  if (messages.length == 20) {
+  if (messages.length >= 20) {
     messages.shift();
   }
 
@@ -43,15 +41,17 @@ function AddMessage(msg, userName, userTime, userColor) {
 // Enviando as informações dos usuários para todos os clientes
 function updateAllUsers() {
   allclients.forEach((client) => {
-    if (client.readyState === WebSocket.OPEN) {
+    if (client.readyState === WebSocket.OPEN && client._userdetails) {
       client.send(
         JSON.stringify({
           event: "UserInfo",
-          data: allclients.map((user) => ({
-            user: user._userdetails.user,
-            onlineStatus: user._userdetails.onlineStatus,
-            color: user._userdetails.color,
-          })),
+          data: allclients
+            .filter((user) => user._userdetails)
+            .map((user) => ({
+              user: user._userdetails.user,
+              onlineStatus: user._userdetails.onlineStatus,
+              color: user._userdetails.color,
+            })),
         }),
       );
     }
@@ -71,30 +71,91 @@ function broadCastNewMessage(user, msg, msgtime, clr) {
   });
 }
 
+// Enviando a lista atualizada de usuários que estão digitando
 function broadCastTypingUser() {
+  const activeTypingUsers = typingusers
+    .filter((user) => user.readyState === WebSocket.OPEN && user._userdetails)
+    .map((user) => ({
+      user: user._userdetails.user,
+    }));
+
   allclients.forEach((client) => {
     if (client.readyState === WebSocket.OPEN) {
       client.send(
         JSON.stringify({
           event: "Typinguser",
-          data: typingusers.map((userob) => ({
-            user: userob._userdetails.user,
-          })),
+          data: activeTypingUsers,
         }),
       );
     }
   });
 }
 
+// Remove um usuário da lista de pessoas digitando
+function removeTypingUser(ws) {
+  const index = typingusers.indexOf(ws);
+
+  if (index !== -1) {
+    typingusers.splice(index, 1);
+    return true;
+  }
+
+  return false;
+}
+
+// Trata a saída do usuário, evitando processá-la duas vezes
+function removeClient(ws) {
+  const index = allclients.indexOf(ws);
+
+  if (index === -1) {
+    return;
+  }
+
+  const userDetails = ws._userdetails;
+
+  allclients.splice(index, 1);
+
+  const wasTyping = removeTypingUser(ws);
+
+  if (userDetails) {
+    const leftTime = getTime();
+    const leftUserDetail = `-------- Usuário ${userDetails.user} saiu ---------`;
+
+    AddMessage(leftUserDetail, "xxxx", leftTime, userDetails.color);
+
+    broadCastNewMessage("xxxx", leftUserDetail, leftTime, userDetails.color);
+  }
+
+  updateAllUsers();
+
+  if (wasTyping) {
+    broadCastTypingUser();
+  } else {
+    // Também atualiza o indicador após uma desconexão.
+    broadCastTypingUser();
+  }
+}
+
 wss.on("connection", (ws) => {
   console.log("Cliente conectado");
 
   ws.on("message", (objdata) => {
-    const { event, data } = JSON.parse(objdata.toString());
+    let eventData;
 
-    // Verificando cada evento individualmente
+    try {
+      eventData = JSON.parse(objdata.toString());
+    } catch {
+      return;
+    }
+
+    const { event, data } = eventData;
+
     switch (event) {
       case "UserInfo": {
+        if (ws._userdetails) {
+          break;
+        }
+
         const joinedTime = getTime();
 
         // Adicionando os dados ao objeto personalizado do WebSocket
@@ -133,13 +194,26 @@ wss.on("connection", (ws) => {
       }
 
       case "Userstatus": {
+        if (!ws._userdetails) {
+          break;
+        }
+
         ws._userdetails.onlineStatus = data;
         updateAllUsers();
+
         break;
       }
 
       case "Message": {
+        if (!ws._userdetails) {
+          break;
+        }
+
         const time = getTime();
+
+        // Encerra o estado de digitação ao enviar uma mensagem.
+        removeTypingUser(ws);
+        broadCastTypingUser();
 
         AddMessage(data.msg, ws._userdetails.user, time, ws._userdetails.color);
 
@@ -153,55 +227,41 @@ wss.on("connection", (ws) => {
         break;
       }
 
-      // Adicionando o usuário atual à lista de usuários digitando, caso ele ainda não exista
       case "AddUserTyping": {
-        const user = typingusers.findIndex((user) => user === ws);
-
-        if (user === -1) {
-          typingusers.push(ws);
+        if (!ws._userdetails) {
+          break;
         }
 
-        broadCastTypingUser();
+        if (!typingusers.includes(ws)) {
+          typingusers.push(ws);
+          broadCastTypingUser();
+        }
+
         break;
       }
 
       case "RemoveUserTyping": {
-        const user = typingusers.findIndex((user) => user === ws);
-
-        if (user !== -1) {
-          typingusers.splice(user, 1);
+        if (removeTypingUser(ws)) {
+          broadCastTypingUser();
         }
 
-        broadCastTypingUser();
         break;
       }
 
-      // Transmitindo uma mensagem quando o usuário sai da sala de chat
       case "userleft": {
-        const lefttime = getTime();
-
-        const leftUserDetail = `-------- Usuário ${ws._userdetails.user} saiu ---------`;
-
-        AddMessage(leftUserDetail, "xxxx", lefttime, ws._userdetails.color);
-
-        // Removendo o usuário da lista de clientes conectados
-        const user = allclients.findIndex((user) => user === ws);
-
-        if (user !== -1) {
-          broadCastNewMessage(
-            "xxxx",
-            leftUserDetail,
-            lefttime,
-            ws._userdetails.color,
-          );
-
-          allclients.splice(user, 1);
-
-          updateAllUsers();
-        }
-
+        removeClient(ws);
         break;
       }
     }
+  });
+
+  // Limpa o estado de digitação e registra a saída por desconexão.
+  ws.on("close", () => {
+    removeClient(ws);
+  });
+
+  ws.on("error", (error) => {
+    console.error("Erro na conexão WebSocket:", error.message);
+    removeClient(ws);
   });
 });
