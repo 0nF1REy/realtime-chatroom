@@ -177,35 +177,25 @@ function getMsgTime(milli) {
 function changetheme(e) {
   const themeClass = e.classList.value;
   const themes = ["a1", "a2", "a3", "a4"];
+  const images = ["bg-01.png", "bg-02.png", "bg-03.png", "bg-04.png"];
 
-  switch (themeClass) {
-    case themes[0]:
-      setTheme("bg-01.png");
-      break;
+  const index = themes.indexOf(themeClass);
 
-    case themes[1]:
-      setTheme("bg-02.png");
-      break;
-
-    case themes[2]:
-      setTheme("bg-03.png");
-      break;
-
-    case themes[3]:
-      setTheme("bg-04.png");
-      break;
+  if (index !== -1) {
+    setTheme(images[index]);
   }
 }
 
 function setTheme(img) {
-  const bodyStyle = document.body.style;
-  var image = new Image();
+  const image = new Image();
 
   image.onload = () => {
-    bodyStyle.backgroundImage = `url(${img})`;
+    document.body.style.backgroundImage = `url("./assets/images/${img}")`;
   };
 
-  image.src = img;
+  image.onerror = () => {
+    console.error("Não foi possível carregar a imagem:", img);
+  };
 
-  if (image.complete) img.onload();
+  image.src = `./assets/images/${img}`;
 }
