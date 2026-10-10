@@ -109,10 +109,11 @@ function getData(username) {
   sndbtn.onclick = () => {
     const msg = iptxt.value.replace(/(<([^>]+)>)/gi, "");
 
-    if (msg.trim() !== "" && ws.readyState === WebSocket.OPEN) {
-      ws.emit("Message", { msg });
+    if (msg.trim() === "" || ws.readyState !== WebSocket.OPEN) {
+      return;
     }
 
+    ws.emit("Message", { msg });
     iptxt.value = "";
     stopTyping();
   };
