@@ -46,16 +46,17 @@ http://localhost:5000
 
 A página inicial da sala de bate-papo será exibida. Informe um nome de usuário e clique em **Entrar!** para acessar o chat.
 
-### 4. Testar a comunicação em tempo real
+### 4. Testar as funcionalidades da aplicação
 
-Para verificar o funcionamento da aplicação:
+Para verificar se tudo está funcionando corretamente:
 
 1. Abra a aplicação em duas ou mais abas do navegador ou em diferentes navegadores no mesmo computador.
 2. Entre na sala utilizando nomes de usuário diferentes.
-3. Envie mensagens e verifique se elas aparecem nas demais sessões conectadas.
-4. Observe a lista de usuários online e os indicadores de status.
+3. Observe a lista de usuários online e os indicadores de status.
+4. Envie mensagens e verifique se elas aparecem nas demais sessões conectadas.
 5. Digite uma mensagem em uma sessão e verifique o indicador de digitação nas outras.
-6. Feche uma das abas e observe a notificação de saída e a atualização da lista de usuários.
+6. Teste os seletores de tema, clicando em cada opção e verificando se o plano de fundo é alterado corretamente.
+7. Feche uma das abas e observe a notificação de saída e a atualização da lista de usuários.
 
 ### 5. Encerrar o servidor
 
